@@ -1,0 +1,12 @@
+spring:
+  boot:
+    admin:
+      client:
+        # DEBE terminar en /admin si esa es la base del server
+        url: "http://admin-server:9090/admin"
+        instance:
+          # Esto ayuda a que el Admin sepa cómo volver a llamar al microservicio
+          prefer-ip: true
+#          metadata:
+#            user.name: "${spring.security.user.name:admin}"
+#            user.password: "${spring.security.user.password:admin}"

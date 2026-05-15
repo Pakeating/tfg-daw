@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: config-service-v3
+  profiles:
+    active: native # Perfil para leer archivos locales en lugar de Git
+  cloud:
+    config:
+      server:
+        native:
+          # Busca los archivos en una carpeta interna del proyecto
+          search-locations: file:/app/config-repo/
+    refresh:
+      enabled: false # Desactiva la infraestructura de Refresh que falla en AOT
+  boot:
+    admin:
+      client:
+        url: "http://admin-server:9090/admin"
+        period: 30000ms
+  output:
+    ansi:
+      enabled: always
+
+logging:
+  file:
+    name: logs/config.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  info:
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+    env:
+      show-values: always
+      post:
+        enabled: true
+
+server:
+  port: 8888

@@ -1,0 +1,82 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PropertySearch from "../components/PropertySearch.astro";
+import PropertyList from "../components/PropertyList.astro";
+import PropertyFilterModal from "../components/PropertyFilterModal.astro";
+import Pagination from "../components/Pagination.astro";
+---
+
+<Layout title="Propiedades - InmoPaco">
+  <main class="container">
+    <header class="page-header">
+      <a href="/properties" class="back-link">← Volver a Propiedades</a>
+      <h1>Listado de Propiedades</h1>
+      <p class="subtitle">Resultados según tus criterios de búsqueda.</p>
+    </header>
+
+    <PropertySearch />
+
+    <div class="filter-bar">
+      <button id="property-filter-btn" class="btn-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        Filtrar
+      </button>
+    </div>
+
+    <Pagination />
+    <PropertyList />
+    <Pagination />
+  </main>
+
+  <PropertyFilterModal />
+</Layout>
+
+<script>
+  document.getElementById('property-filter-btn')?.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('property-filter:open'));
+  });
+</script>
+
+<script>
+  if (typeof window !== 'undefined') {
+    const currentSearch = window.location.search;
+    sessionStorage.setItem('last_property_search', currentSearch);
+  }
+</script>
+
+<style>
+  main {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+  .page-header {
+    margin-bottom: 4rem;
+    text-align: center;
+  }
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+  .subtitle {
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+  }
+  .filter-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+  }
+  .filter-bar .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+</style>

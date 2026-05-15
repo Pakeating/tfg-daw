@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: NotificationService
+
+server:
+  port: 8086
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+spring.boot.admin:
+  client:
+    url: http://localhost:9090/admin
+
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:your-token-here}
+    username: ${TELEGRAM_BOT_USERNAME:inmoPacoBot}
+  users:
+    file: ${TELEGRAM_USERS_FILE:users.json}

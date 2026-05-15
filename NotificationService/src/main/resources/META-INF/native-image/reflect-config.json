@@ -1,0 +1,84 @@
+[
+  {
+    "name": "org.telegram.telegrambots.meta.api.methods.updates.GetWebhookInfo",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.telegram.telegrambots.meta.api.methods.updates.SetWebhook",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.telegram.telegrambots.meta.api.objects.Message",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {"name": "text"},
+      {"name": "chat"},
+      {"name": "from"},
+      {"name": "date"}
+    ]
+  },
+  {
+    "name": "org.telegram.telegrambots.meta.api.objects.Chat",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {"name": "id"},
+      {"name": "type"},
+      {"name": "title"},
+      {"name": "username"}
+    ]
+  },
+  {
+    "name": "org.telegram.telegrambots.meta.api.objects.User",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {"name": "id"},
+      {"name": "firstName"},
+      {"name": "lastName"},
+      {"name": "username"}
+    ]
+  },
+  {
+    "name": "org.telegram.telegrambots.meta.api.objects.Update",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {"name": "message"},
+      {"name": "callbackQuery"},
+      {"name": "editedMessage"}
+    ]
+  },
+  {
+    "name": "org.telegram.telegrambots.meta.api.objects.CallbackQuery",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {"name": "id"},
+      {"name": "from"},
+      {"name": "data"}
+    ]
+  },
+  {
+    "name": "org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.fasterxml.jackson.databind.ObjectMapper",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.time.Instant",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.time.ZoneId",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  }
+]

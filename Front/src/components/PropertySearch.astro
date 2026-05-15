@@ -1,0 +1,95 @@
+---
+/**
+ * Lógica de búsqueda de propiedades
+ * Se encarga de leer los parámetros de la URL y obtener los datos del servidor.
+ */
+---
+
+<div id="property-search-logic" class="hidden"></div>
+
+<script>
+  const performSearch = async () => {
+    document.dispatchEvent(new CustomEvent('properties:loading', { bubbles: true }));
+
+    const params = new URLSearchParams(window.location.search);
+    const filters = {
+      propertyId: params.get('propertyId') || params.get('id'),
+      city: params.get('city'),
+      province: params.get('province'),
+      contractType: params.get('contractType'),
+      propertyType: params.get('propertyType')
+    };
+
+    const page = params.get('page') || '0';
+    const size = params.get('size') || '10';
+    const sortBy = params.get('sortBy') || '+createdAt';
+
+    console.log('[PropertySearch] Fetching from API with filters:', filters, { page, size, sortBy });
+
+    try {
+      const queryParams = new URLSearchParams({ page, size, sortBy }).toString();
+      let response;
+
+      const hasOnlyId = filters.propertyId && !filters.city && !filters.province && !filters.contractType && !filters.propertyType;
+
+      if (hasOnlyId) {
+        response = await fetch(`/api/properties?id=${filters.propertyId}&${queryParams}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+      } else {
+        response = await fetch(`/api/properties?${queryParams}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(filters)
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error en la respuesta: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('[PropertySearch] API Response Data:', data);
+
+      const results = data.content || [];
+      const p = data.page || data;
+      const pagination = {
+        page: Number(p.number ?? 0),
+        size: Number(p.size ?? 12),
+        totalPages: Number(p.totalPages ?? 1),
+        totalElements: Number(p.totalElements ?? 0),
+        isLast: Boolean(p.last),
+        isFirst: Boolean(p.first)
+      };
+
+      document.dispatchEvent(new CustomEvent('properties:fetched', {
+        detail: { 
+          results, 
+          filters,
+          pagination
+        },
+        bubbles: true
+      }));
+      
+    } catch (error) {
+      console.error('[PropertySearch] Error fetching properties:', error);
+      document.dispatchEvent(new CustomEvent('properties:error', {
+        detail: { message: 'Ha ocurrido un error al obtener los datos' },
+        bubbles: true
+      }));
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(performSearch, 50);
+  });
+</script>
+
+<style>
+  .hidden { display: none; }
+</style>

@@ -1,0 +1,107 @@
+---
+/**
+ * Lógica de búsqueda de subastas
+ * Se encarga de leer los parámetros de la URL y obtener los datos del servidor.
+ */
+---
+
+<div id="auction-search-logic" class="hidden"></div>
+
+<script>
+  const performSearch = async () => {
+    // evento de carga iniciada
+    document.dispatchEvent(new CustomEvent('auctions:loading', { bubbles: true }));
+
+    const params = new URLSearchParams(window.location.search);
+    const filters = {
+      auctionIds: params.get('auctionIds') ? params.get('auctionIds').split(',').map(s => s.trim()).filter(Boolean) : [],
+      type: params.get('type'),
+      dateOfEnd: params.get('dateOfEnd'),
+      city: params.get('city'),
+      provinces: params.getAll('provinces'),
+      isVisitable: params.get('isVisitable'),
+      hasBids: params.has('hasBids') ? params.get('hasBids') === 'true' : null,
+      status: params.get('status'),
+      isMultiLot: params.has('isMultiLot') ? params.get('isMultiLot') === 'true' : null
+    };
+
+    const page = params.get('page') || '0';
+    const size = params.get('size') || '10';
+    const sortBy = params.get('sortBy') || '+dateOfEnd';
+
+    console.log('[AuctionSearch] Fetching from API with filters:', filters, { page, size, sortBy });
+
+    try {
+      const queryParams = new URLSearchParams({ page, size, sortBy }).toString();
+      let response;
+
+      if (filters.auctionIds.length === 1 && Object.values({ ...filters, auctionIds: [] }).every(v => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0))) {
+        // si solo hay un ID y ningún otro filtro, usamos GET con pathvariable (simulado con query param id para el proxy)
+        console.log('[AuctionSearch] Single ID detected, using GET');
+        response = await fetch(`/api/auctions?id=${filters.auctionIds[0]}&${queryParams}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+      } else {
+        // sino, post con body
+        response = await fetch(`/api/auctions?${queryParams}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(filters)
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error en la respuesta: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('[AuctionSearch] API Response Data:', data);
+      
+      // los resultados están en el campo 'content'
+      const results = data.content || [];
+
+      // info de paginación
+      const p = data.page || data;
+      const pagination = {
+        page: Number(p.number ?? 0),
+        size: Number(p.size ?? 10),
+        totalPages: Number(p.totalPages ?? 1),
+        totalElements: Number(p.totalElements ?? 0),
+        isLast: Boolean(p.last),
+        isFirst: Boolean(p.first)
+      };
+
+      // lanzamos el evento con los resultados
+      document.dispatchEvent(new CustomEvent('auctions:fetched', {
+        detail: { 
+          results, 
+          filters,
+          pagination
+        },
+        bubbles: true
+      }));
+      
+    } catch (error) {
+      console.error('[AuctionSearch] Error fetching auctions:', error);
+      document.dispatchEvent(new CustomEvent('auctions:error', {
+        detail: { message: 'Ha ocurrido un error al obtener los datos' },
+        bubbles: true
+      }));
+    }
+  };
+
+  // Ejecutar búsqueda cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    // delay para asegurar que los listeners de otros componentes estén registrados
+    setTimeout(performSearch, 50);
+  });
+</script>
+
+<style>
+  .hidden { display: none; }
+</style>

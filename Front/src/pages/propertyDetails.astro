@@ -1,0 +1,60 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PropertySearch from "../components/PropertySearch.astro";
+import PropertyDetailContent from "../components/PropertyDetailContent.astro";
+---
+
+<Layout title="Detalle de Propiedad - InmoPaco">
+	<main class="container">
+		<header class="page-header">
+			<a href="/propertiesList" class="back-link" id="back-to-list-top">← Volver al Listado</a>
+			<h1>Detalle de la Propiedad</h1>
+		</header>
+
+    <PropertySearch />
+
+    <PropertyDetailContent />
+	</main>
+</Layout>
+
+<script>
+  if (typeof window !== 'undefined') {
+    const savedSearch = sessionStorage.getItem('last_property_search');
+    if (savedSearch) {
+      const backLink = document.getElementById('back-to-list-top') as HTMLAnchorElement | null;
+      if (backLink) {
+        backLink.href = `/propertiesList${savedSearch}`;
+      }
+    }
+  }
+</script>
+
+<style>
+	main.container {
+		padding-top: 2rem;
+		padding-bottom: 4rem;
+		max-width: 1200px;
+	}
+
+  @media (max-width: 768px) {
+    main.container {
+      padding-top: 1rem;
+      padding-bottom: 2rem;
+    }
+    .page-header h1 {
+      font-size: 1.75rem;
+    }
+  }
+	.page-header {
+		margin-bottom: 2rem;
+	}
+	.back-link {
+		display: inline-block;
+		color: var(--color-text-muted);
+		font-weight: 500;
+    transition: color 0.2s;
+	}
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+</style>

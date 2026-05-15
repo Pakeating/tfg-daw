@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: ai-service
+  boot:
+    admin:
+      client:
+        url: "http://admin-server:9090/admin"
+  config:
+    import: "optional:configserver:http://config-service-v3:8888"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  file:
+    name: /app/logs/ai-service.log
+
+nats:
+  url: nats://nats-server:4222
+
+ai-config: #el nombre del modelo no se puede repetir entre providers
+  providers:
+    - id: "openrouter"
+      url: "https://openrouter.ai/api/v1/chat/completions"
+      key: "${OPENROUTER_API_KEY}"
+      models:
+        - code: "ORFREE"
+          name: "openrouter/free"
+        - code: "MINIMAX"
+          name: "minimax/minimax-m2.5:free"
+        - code: "STEPFUN"
+          name: "stepfun/step-3.5-flash:free"
+        - code: "NEMOTRON"
+          name: "nvidia/nemotron-3-super-120b-a12b:free"
+  fallback-code: "ORFREE"  #codigo por defecto si no se especifica o se pide uno que no exista
+
+server:
+  port: 8085

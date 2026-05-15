@@ -1,0 +1,18 @@
+//compilar servicios sin cache de uno en uno
+docker-compose -f deployment/docker-compose.yml build --no-cache eureka-server
+
+docker-compose -f deployment/docker-compose.yml build --no-cache config-service
+
+docker-compose -f deployment/docker-compose.yml build --no-cache api-gateway
+
+//levantar todo
+docker-compose -f deployment/docker-compose.yml up -d
+
+//ver salud de los servicios
+docker-compose -f deployment/docker-compose.yml ps
+
+//ver logs en tiempo real
+docker logs -f api-gateway
+
+//reiniciar servicio
+docker-compose -f deployment/docker-compose.yml up -d --no-deps api-gateway

@@ -1,0 +1,57 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AuctionSearch from "../components/AuctionSearch.astro";
+import AuctionList from "../components/AuctionList.astro";
+import Pagination from "../components/Pagination.astro";
+---
+
+<Layout title="Subastas Activas - InmoPaco">
+	<main class="container">
+		<header class="page-header">
+			<a href="/auctions" class="back-link">← Volver a Subastas</a>
+			<h1>Listado de Subastas</h1>
+			<p class="subtitle">Resultados según tus criterios de búsqueda.</p>
+		</header>
+
+    <!-- busqueda (sin interfaz) -->
+    <AuctionSearch />
+
+    <!-- componentes-->
+    <Pagination />
+    <AuctionList />
+    <Pagination />
+	</main>
+</Layout>
+
+<script>
+  // Guardar el estado de la búsqueda actual para poder volver desde el detalle
+  if (typeof window !== 'undefined') {
+    const currentSearch = window.location.search;
+    sessionStorage.setItem('last_auction_search', currentSearch);
+  }
+</script>
+
+<style>
+	main {
+		padding-top: 4rem;
+		padding-bottom: 4rem;
+	}
+	.page-header {
+		margin-bottom: 4rem;
+		text-align: center;
+	}
+	.back-link {
+		display: inline-block;
+		margin-bottom: 1rem;
+		color: var(--color-text-muted);
+		font-weight: 500;
+	}
+	h1 {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+	}
+	.subtitle {
+		font-size: 1.25rem;
+		color: var(--color-text-muted);
+	}
+</style>

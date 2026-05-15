@@ -1,0 +1,82 @@
+info:
+  concrete-type: api-gateway
+
+server:
+  port: 8080
+  cloud:
+    gateway:
+      routes:
+        - id: admin-server
+          uri: http://admin-server:9090
+          predicates:
+            - Path=/admin/**
+          filters:
+            - PreserveHostHeader
+            - name: CircuitBreaker
+              args:
+                name: AdminServer
+        - id: portainer
+          uri: http://host.docker.internal:9000
+          predicates:
+            - Path=/portainer/**
+          filters:
+            - PreserveHostHeader
+            - RewritePath=/portainer/(?<segment>.*), /${segment}
+        - id: nats-dashboard
+          uri: http://nats-dashboard:80
+          predicates:
+            - Path=/nats/**
+          filters:
+            - PreserveHostHeader
+            - RewritePath=/nats/(?<segment>.*), /${segment}
+        - id: adminer
+          uri: http://adminer:8080
+          predicates:
+            - Path=/adminer/**
+          filters:
+            - PreserveHostHeader
+            - RewritePath=/adminer/(?<segment>.*), /${segment}
+        - id: auctions
+          uri: http://auction-service:8081
+          predicates:
+            - Path=/auctions/**
+          filters:
+            - PreserveHostHeader
+            - name: CircuitBreaker
+              args:
+                name: Auctions
+        - id: orchestrator
+          uri: http://orchestrator:8082
+          predicates:
+            - Path=/orchestrator/**
+          filters:
+            - PreserveHostHeader
+            - name: CircuitBreaker
+              args:
+                name: Orchestrator
+
+# Configuración de Resiliencia (Circuit Breaker)
+resilience4j:
+  circuitbreaker:
+    configs:
+      # Plantilla de configuracion general
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+      instances:
+        AdminServer:
+          baseConfig: default
+        Auctions:
+          baseConfig: default
+        Orchestrator:
+          baseConfig: default
+
+# Observabilidad y Logs
+management:
+  tracing:
+    sampling:
+      probability: 1.0 # 100% de trazas para desarrollo
+

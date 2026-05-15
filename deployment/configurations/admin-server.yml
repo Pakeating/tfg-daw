@@ -1,0 +1,11 @@
+info:
+  concrete-type: admin
+
+server:
+  port: 9090
+
+# para que Admin se vea a sí mismo
+spring:
+  boot:
+    admin:
+      context-path: /admin

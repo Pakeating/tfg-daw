@@ -1,0 +1,155 @@
+spring:
+  boot:
+    admin:
+      client:
+        # DEBE terminar en /admin si esa es la base del server
+        url: "http://admin-server:9090/admin"
+  application:
+    name: api-gateway-v3
+  config:
+    import: "optional:configserver:http://config-service-v3:8888"
+  cloud:
+    refresh:
+      enabled: false # Desactiva la infraestructura de Refresh que falla en AOT
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: admin-server
+              uri: http://admin-server:9090
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /admin/**
+              filters:
+                - name: PreserveHostHeader
+                - name: CircuitBreaker
+                  args:
+                    name: AdminServer
+            - id: portainer
+              uri: http://host.docker.internal:9000
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /portainer/**
+              filters:
+                - name: PreserveHostHeader
+                - name: RewritePath
+                  args:
+                    regexp: /portainer/(?<segment>.*)
+                    replacement: /${segment}
+            - id: nats-dashboard
+              uri: http://nats-dashboard:80
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /nats/**
+              filters:
+                - name: PreserveHostHeader
+                - name: RewritePath
+                  args:
+                    regexp: /nats/(?<segment>.*)
+                    replacement: /${segment}
+            - id: adminer
+              uri: http://adminer:8080
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /adminer/**
+              filters:
+                - name: PreserveHostHeader
+                - name: RewritePath
+                  args:
+                    regexp: /adminer/(?<segment>.*)
+                    replacement: /${segment}
+            - id: auctions
+              uri: http://auction-service:8081
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /auctions/**
+              filters:
+                - name: PreserveHostHeader
+                - name: CircuitBreaker
+                  args:
+                    name: Auctions
+            - id: orchestrator
+              uri: http://orchestrator:8082
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /orchestrator/**
+              filters:
+                - name: PreserveHostHeader
+                - name: CircuitBreaker
+                  args:
+                    name: Orchestrator
+            - id: BFF-Swagger
+              uri: http://BFF:8083
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /bff/swagger-ui/**, /bff/v3/api-docs/**
+              filters:
+                - name: RewritePath
+                  args:
+                    regexp: /bff/(?<segment>.*)
+                    replacement: /${segment}
+            - id: BFF
+              uri: http://BFF:8083
+              predicates:
+                - name: Path
+                  args:
+                    patterns: /bff/**
+              filters:
+                - name: PreserveHostHeader
+                - name: CircuitBreaker
+                  args:
+                    name: BFF
+
+# Configuración de Resiliencia (Circuit Breaker)
+resilience4j:
+  circuitbreaker:
+    configs:
+      # Plantilla de configuracion general
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+    instances:
+      AdminServer:
+        baseConfig: default
+      Auctions:
+        baseConfig: default
+      Orchestrator:
+        baseConfig: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  info:
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+    env:
+      show-values: always
+      post:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0 # 100% de trazas para desarrollo
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:dev-secret-please-change-in-production}
+
+app:
+  environment: ${APP_ENVIRONMENT:production}

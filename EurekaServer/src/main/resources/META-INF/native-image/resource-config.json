@@ -1,0 +1,9 @@
+{
+  "resources": {
+    "includes": [
+      { "pattern": "templates/.*" },
+      { "pattern": "static/.*" },
+      { "pattern": "org/springframework/cloud/netflix/eureka/server/.*" }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+/deployment/mariadb_data/
+deployment/logs/
+deployment/nats_data/
+.idea/
+/out/
+.env

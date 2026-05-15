@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: orchestrator
+  config:
+    import: "optional:configserver:http://config-service-v3:8888"
+  boot:
+    admin:
+      client:
+        url: "http://admin-server:9090/admin"
+  cloud:
+    config:
+      override-none: false
+      allow-override: true
+      override-system-properties: true
+
+logging:
+  file:
+    name: logs/orchestrator.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+nats:
+  durable-name: OrchestratorService
+  subjects:
+    wildcards:
+      auctions: auctions.>
+      properties: properties.>
+      ai: ai.>
+    publisher:
+      auctions: auctions.get
+      properties: properties.get
+      ai: ai.get
+    subscriber:
+      auctions: auctions.response
+      properties: properties.response
+      ai: ai.response
+  streams:
+    auctions: AUCTIONS_STREAM
+    properties: PROPERTIES_STREAM
+    ai: AI_STREAM
+
+schedules:
+  auctions:
+    get-auctions:
+      cron: "0 0 11 * * *" #las 11 del mediodia #"0 0 0 * * ?" # las doce de la noche
+  properties:
+    get-properties:
+      cron: "0 0 9 * * ?" # las 9 de la mañana
+
+server:
+  port: 8082

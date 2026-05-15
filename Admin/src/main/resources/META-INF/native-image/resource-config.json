@@ -1,0 +1,9 @@
+{
+  "resources": {
+    "includes": [
+      {"pattern": "META-INF/spring-boot-admin-server-ui/.*"},
+      {"pattern": "assets/.*"},
+      {"pattern": "index.html"}
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+---
+/**
+ * Página principal de subastas
+ */
+import Layout from "../layouts/Layout.astro";
+import FilterModal from "../components/FilterModal.astro";
+---
+
+<Layout title="Subastas - InmoPaco">
+	<main class="container">
+		<header class="page-header">
+			<h1>Subastas Inmobiliarias</h1>
+			<p class="subtitle">
+				Encuentra oportunidades únicas en subastas públicas.
+			</p>
+		</header>
+
+		<section class="auctions-grid">
+			<a href="/auctionsList?status=ACTIVE" class="card-link">
+				<div class="card">
+					<h3>Subastas Activas</h3>
+					<p>Todas las subastas activas hoy</p>
+				</div>
+			</a>
+			<div id="filter-card" class="card clickable">
+				<h3>Filtrar Subastas</h3>
+				<p>Filtra por tipo, estado, localización...</p>
+			</div>
+		</section>
+
+    <FilterModal />
+	</main>
+</Layout>
+
+<script>
+  // abre el modal al hacer click
+  document.getElementById('filter-card')?.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('filter:open'));
+  });
+</script>
+
+<style>
+	main {
+		padding-top: 4rem;
+		padding-bottom: 4rem;
+	}
+	.page-header {
+		text-align: center;
+		margin-bottom: 4rem;
+	}
+	h1 {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+	}
+	.subtitle {
+		font-size: 1.25rem;
+		color: var(--color-text-muted);
+	}
+	.auctions-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 2rem;
+		justify-content: center;
+	}
+	.card {
+		text-align: center;
+		margin-bottom: 1rem;
+		height: 100%;
+	}
+  .card.clickable {
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .card.clickable:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+	.card-link {
+		text-decoration: none;
+		color: inherit;
+		transition: transform var(--transition-fast);
+	}
+	.card-link:hover {
+		transform: translateY(-4px);
+	}
+</style>

@@ -1,0 +1,239 @@
+---
+/**
+ * componente de lotes
+ */
+---
+<script>
+  class AuctionListLots extends HTMLElement {
+    set lots(lotsData) {
+      if (!lotsData || lotsData.length === 0) {
+        this.classList.add('hidden');
+        this.innerHTML = '';
+        return;
+      }
+
+      this.classList.remove('hidden');
+      
+      this.innerHTML = `
+        <div class="lots-wrapper">
+          <h4 class="lots-title">Lotes incluidos (<span class="lots-count">${lotsData.length}</span>):</h4>
+          <div class="lots-accordion">
+            ${lotsData.map((lot, index) => `
+              <div class="lot-accordion-item ${index === 0 ? 'active' : ''}">
+                <button class="lot-accordion-header" type="button">
+                  <span class="lot-title text-ellipsis" title="${lot.lotTitle || 'Lote'}">
+                    <strong>Lote ${index + 1}:</strong> ${lot.lotTitle || 'Sin título'}
+                  </span>
+                  <span class="lot-accordion-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+
+                </button>
+                
+                <div class="lot-accordion-content">
+                  <div class="lot-accordion-content-inner">
+                    <div class="lot-info-grid">
+                      <div class="lot-info-item full-width">
+                        <span class="lot-label">Dirección:</span>
+                        <span class="lot-value">${lot.propertyAddress || '-'}, ${lot.city || ''} (${lot.province || ''})</span>
+                      </div>
+                      <div class="lot-info-item">
+                        <span class="lot-label">Ref. Catastral:</span>
+                        <span class="lot-value">${lot.cadastralReference || '-'}</span>
+                      </div>
+                      <div class="lot-info-item">
+                        <span class="lot-label">Valor Subasta:</span>
+                        <span class="lot-value">${lot.auctionValue || '-'}</span>
+                      </div>
+                      <div class="lot-info-item">
+                        <span class="lot-label">Depósito:</span>
+                        <span class="lot-value">${lot.depositAmount || '-'}</span>
+                      </div>
+                      ${lot.goodsDescription ? `
+                        <div class="lot-info-item full-width">
+                          <span class="lot-label">Descripción:</span>
+                          <p class="lot-description">${lot.goodsDescription}</p>
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      // Add accordion logic
+      this.querySelectorAll('.lot-accordion-header').forEach(header => {
+        header.addEventListener('click', (e) => {
+          e.preventDefault();
+          const item = header.closest('.lot-accordion-item');
+          const isActive = item.classList.contains('active');
+          
+          if (!isActive) {
+            // Lógica exclusiva: cerrar otros
+            this.querySelectorAll('.lot-accordion-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active');
+          }
+        });
+      });
+    }
+  }
+
+  if (!customElements.get('auction-list-lots')) {
+    customElements.define('auction-list-lots', AuctionListLots);
+  }
+</script>
+
+<style is:global>
+  auction-list-lots {
+    display: block;
+    margin-bottom: 1rem;
+  }
+  auction-list-lots.hidden {
+    display: none !important;
+  }
+  auction-list-lots .lots-wrapper {
+    margin-bottom: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border-color);
+  }
+  auction-list-lots .lots-title {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+  
+  /* Accordion styles */
+  .lots-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .lot-accordion-item {
+    background-color: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .lot-accordion-item.active {
+    border-color: var(--color-primary);
+    background-color: white;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .lot-accordion-header {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s;
+  }
+  
+  .lot-accordion-header:hover {
+    background-color: #f1f5f9;
+  }
+  
+  .lot-accordion-item.active .lot-accordion-header {
+    background-color: rgba(var(--color-primary-rgb, 43, 67, 137), 0.03);
+    border-bottom: 1px solid rgba(var(--color-primary-rgb, 43, 67, 137), 0.05);
+  }
+  
+  .lot-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-main);
+  }
+  
+  .lot-title strong {
+    color: var(--color-primary);
+  }
+  
+  .lot-accordion-icon {
+    font-size: 0.65rem;
+    color: var(--color-primary);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  
+  .lot-accordion-item.active .lot-accordion-icon {
+    transform: rotate(180deg);
+    background-color: var(--color-primary);
+    color: white;
+  }
+  
+  .lot-accordion-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .lot-accordion-item.active .lot-accordion-content {
+    grid-template-rows: 1fr;
+  }
+  
+  .lot-accordion-content-inner {
+    overflow: hidden;
+  }
+  
+  .lot-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  
+  .lot-info-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .lot-info-item.full-width {
+    grid-column: 1 / -1;
+  }
+  
+  .lot-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 0.15rem;
+    font-weight: 600;
+  }
+  
+  .lot-value {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+  }
+  
+  .lot-description {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

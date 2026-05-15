@@ -1,0 +1,294 @@
+networks:
+  microservices-network:
+    driver: bridge
+  public-tunnel-network:
+    driver: bridge
+services:
+
+# SERVICIOS DE INFRAESTRUCTURA:
+
+  # --- CONFIG SERVICE V3---
+  config-service-v3:
+    image: ghcr.io/${GH_USER}/inmopaco/${CONFIG}:latest
+    hostname: config-service-v3
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./configurations:/app/config-repo
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      admin-server:
+        condition: service_healthy
+    networks:
+      - microservices-network
+
+  # --- API GATEWAY V3 ---
+  api-gateway-v3:
+    image: ghcr.io/${GH_USER}/inmopaco/${GATEWAY}:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - EUREKA_CLIENT_ENABLED=false
+      - SPRING_CLOUD_DISCOVERY_ENABLED=false
+    networks:
+      - microservices-network
+      - public-tunnel-network
+
+  # --- ADMIN ---
+  admin-server:
+    image: ghcr.io/${GH_USER}/inmopaco/${ADMIN}:latest
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9090/actuator/health" ]
+      interval: 5s
+      retries: 10
+      start_period: 5s
+    environment:
+      - SPRING_BOOT_ADMIN_CONTEXT_PATH=/admin
+    networks:
+      - microservices-network
+
+  # --- ACTUALIZADOR AUTOMÁTICO ---
+  watchtower:
+    image: containrrr/watchtower
+    container_name: ${WATCHTOWER}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_API_VERSION=1.52
+    command: --interval 30 --cleanup
+    networks:
+      - microservices-network
+
+  # --- CONECTOR DE CLOUDFLARE TUNNELS ---
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ${CLOUDFLARE}
+    restart: unless-stopped
+    networks:
+      - public-tunnel-network
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
+
+  # --- COLAS MENSAJERIA ---
+  nats-server:
+    image: nats:2.10-alpine
+    container_name: ${NATS}
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: [
+      "-js",
+      "-m", "8222",
+      "--sd", "/data"
+    ]
+    volumes:
+      - ./nats_data:/data
+    networks:
+      - microservices-network
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+
+  # --- NATS DASHBOARD ---
+  nats-dashboard:
+    image: mdawar/nats-dashboard:latest
+    container_name: ${NATS_DASHBOARD}
+    ports:
+      - "8282:80"
+    environment:
+      - REVERSE_PROXY_UPSTREAM=nats-server:8222
+    depends_on:
+      - nats-server
+    networks:
+      - microservices-network
+
+  # --- DATABASES ---
+  mariadb:
+    image: mariadb:10.11
+    container_name: ${MARIADB}
+    restart: always
+    command: [
+      "mysqld",
+      "--performance-schema=OFF",
+      "--innodb-buffer-pool-size=64M",
+      "--innodb-log-buffer-size=8M",
+      "--max-connections=20",
+      "--key-buffer-size=16M",
+      "--query-cache-size=0",
+      "--query-cache-type=0",
+      "--skip-name-resolve"
+    ]
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASS}
+      - MYSQL_DATABASE=${DB_DB}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mariadb_data:/var/lib/mysql
+    networks:
+      - microservices-network
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+
+  # --- ADMINER ---
+  adminer:
+    image: adminer:latest
+    container_name: ${ADMINER}
+    restart: always
+    ports:
+      - "4000:8080"
+    networks:
+      - microservices-network
+
+#    SERVICIOS DE NEGOCIO
+
+  orchestrator:
+    image: ghcr.io/${GH_USER}/inmopaco/${ORCHESTRATOR}:latest
+    ports:
+      - "8082:8082"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+  # --- AUCTION SERVICE ---
+  auction-service:
+    image: ghcr.io/${GH_USER}/inmopaco/${AUCTIONS}:latest
+    ports:
+      - "8081:8081"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+  # --- BFF ---
+  bff:
+    image: ghcr.io/${GH_USER}/inmopaco/${BFF}:latest
+    ports:
+      - "8083:8083"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/app_db
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+  # --- PropertyService ---
+  property-service:
+    image: ghcr.io/${GH_USER}/inmopaco/${PROPERTY}:latest
+    ports:
+      - "8084:8084"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+  # --- AIService ---
+  ai-service:
+    image: ghcr.io/${GH_USER}/inmopaco/${AI}:latest
+    ports:
+      - "8085:8085"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+  # --- NotificationService ---
+  notification-service:
+    container_name: ${NOTIFICATION}
+    build:
+      context: ..
+      dockerfile: NotificationService/Dockerfile
+    image: ghcr.io/${GH_USER}/inmopaco/${NOTIFICATION}:latest
+    ports:
+      - "8086:8086"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
+      - TELEGRAM_USERS_FILE=/app/data/users.json
+    volumes:
+      - ./notification_data:/app/data
+    networks:
+      - microservices-network

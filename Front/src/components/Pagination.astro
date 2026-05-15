@@ -1,0 +1,204 @@
+---
+/**
+ * Componente de paginación
+ * Maneja la navegación entre páginas y el cambio de tamaño de resultados.
+ */
+---
+
+<div class="pagination-wrapper pagination-container">
+  <div class="size-selector">
+    <label for="page-size">Por página:</label>
+    <select class="page-size-select">
+      <option value="10">10</option>
+      <option value="25">25</option>
+      <option value="50">50</option>
+    </select>
+  </div>
+
+  <div class="nav-controls">
+    <button class="btn-pagination prev-page" disabled>
+      <span class="icon">←</span> <span class="btn-label">Anterior</span>
+    </button>
+    <div class="page-info">
+      <span class="current current-page-text">1</span>
+      <span class="separator">/</span>
+      <span class="total total-pages-text">1</span>
+    </div>
+    <button class="btn-pagination next-page" disabled>
+      <span class="btn-label">Siguiente</span> <span class="icon">→</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  function updateAllPaginations() {
+    const wrappers = document.querySelectorAll('.pagination-wrapper');
+    const params = new URLSearchParams(window.location.search);
+    const currentSize = params.get('size') || '10';
+
+    wrappers.forEach(wrapper => {
+      const sizeSelect = wrapper.querySelector('.page-size-select') as HTMLSelectElement;
+      if (sizeSelect) sizeSelect.value = currentSize;
+    });
+  }
+
+  function onFetched(event: CustomEvent) {
+    // @ts-ignore
+    const { pagination } = event.detail;
+    const wrappers = document.querySelectorAll('.pagination-wrapper');
+
+    if (!pagination || pagination.totalElements === 0) {
+      wrappers.forEach(w => w.classList.add('hidden'));
+      return;
+    }
+
+    const { page, totalPages, size } = pagination;
+
+    wrappers.forEach(wrapper => {
+      wrapper.classList.remove('hidden');
+      
+      const currentText = wrapper.querySelector('.current-page-text');
+      const totalText = wrapper.querySelector('.total-pages-text');
+      const prevBtn = wrapper.querySelector('.prev-page') as HTMLButtonElement;
+      const nextBtn = wrapper.querySelector('.next-page') as HTMLButtonElement;
+      const sizeSelect = wrapper.querySelector('.page-size-select') as HTMLSelectElement;
+
+      if (currentText) currentText.textContent = (page + 1).toString();
+      if (totalText) totalText.textContent = totalPages.toString();
+      if (sizeSelect) sizeSelect.value = size.toString();
+
+      if (prevBtn) {
+        prevBtn.disabled = page === 0;
+        prevBtn.onclick = () => changePage(page - 1);
+      }
+      if (nextBtn) {
+        nextBtn.disabled = page >= totalPages - 1;
+        nextBtn.onclick = () => changePage(page + 1);
+      }
+    });
+  }
+
+  document.addEventListener('auctions:fetched', onFetched);
+  document.addEventListener('properties:fetched', onFetched);
+
+  // Gestionar cambios en el selector de tamaño de página
+  document.addEventListener('change', (e) => {
+    const target = e.target as HTMLSelectElement;
+    if (target && target.classList.contains('page-size-select')) {
+      const newSize = target.value;
+      const url = new URL(window.location.href);
+      url.searchParams.set('size', newSize);
+      url.searchParams.set('page', '0'); // Volver a la primera página si cambia el tamaño
+      window.location.href = url.toString();
+    }
+  });
+
+  function changePage(newPage: number) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', newPage.toString());
+    window.location.href = url.toString();
+  }
+
+  // Sincronización inicial al cargar la página
+  updateAllPaginations();
+</script>
+
+<style>
+  .pagination-container {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background: white;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .size-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  .page-size-select {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: white;
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .page-size-select:focus {
+    border-color: var(--color-primary);
+  }
+
+  .btn-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.4rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 0.8rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-pagination:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+  }
+
+  .btn-pagination:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .page-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+  }
+
+  .current {
+    color: var(--color-primary);
+    font-size: 1.1rem;
+  }
+
+  .total {
+    color: var(--color-text-muted);
+  }
+
+  .hidden { display: none; }
+
+  @media (max-width: 640px) {
+    .pagination-container {
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 1.5rem;
+    }
+    .btn-label {
+      display: none;
+    }
+  }
+</style>

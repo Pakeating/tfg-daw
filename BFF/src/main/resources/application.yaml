@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: BFF
+  boot:
+    admin:
+      client:
+        url: "http://admin-server:9090/admin"
+  config:
+    import: "optional:configserver:http://config-service-v3:8888"
+  datasource:
+    url: jdbc:mariadb://mariadb:3306/app_db
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5  # optimización de RAM, no quiero que se sature la base de datos
+      minimum-idle: 2
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  file:
+    name: logs/BFF.log
+
+nats:
+  url: nats://localhost:4222
+
+server:
+  port: 8083
+  forward-headers-strategy: framework
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+  api-docs:
+    path: /v3/api-docs

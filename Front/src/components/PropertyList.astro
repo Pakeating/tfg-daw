@@ -1,0 +1,272 @@
+---
+/**
+ * Lista de propiedades
+ */
+import LoadingState from './LoadingState.astro';
+import ErrorState from './ErrorState.astro';
+---
+
+<div id="property-results-wrapper">
+  <LoadingState id="loading-view" hidden={false} />
+  <ErrorState id="error-view" />
+
+  <div id="property-results-container" class="property-list hidden">
+  </div>
+
+  <div id="no-results-view" class="no-results hidden">
+    <p>No se encontraron propiedades que coincidan con tus criterios.</p>
+    <a href="/properties" class="btn-accent">Volver al Buscador</a>
+  </div>
+</div>
+
+<template id="property-card-template">
+  <div class="card property-card">
+    <div class="card-header">
+      <span class="property-type"></span>
+      <span class="contract-badge"></span>
+    </div>
+    <div class="property-content">
+      <h3 class="property-address"></h3>
+      <p class="location">
+        <span class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </span> 
+        <span class="location-text"></span>
+      </p>
+      
+      <div class="property-details">
+        <div class="detail">
+          <span class="label">Habitaciones</span>
+          <span class="value bedrooms"></span>
+        </div>
+        <div class="detail">
+          <span class="label">Baños</span>
+          <span class="value bathrooms"></span>
+        </div>
+        <div class="detail">
+          <span class="label">Superficie</span>
+          <span class="value surface"></span>
+        </div>
+      </div>
+      
+      <div class="price-section">
+        <span class="price"></span>
+      </div>
+      
+      <a href="" class="btn-primary block detail-link" style="margin-top: auto;">Ver Detalles</a>
+    </div>
+  </div>
+</template>
+
+<script>
+  const container = document.getElementById('property-results-container');
+  const loadingView = document.getElementById('loading-view');
+  const errorView = document.getElementById('error-view');
+  const errorMessage = document.getElementById('error-message');
+  const noResultsView = document.getElementById('no-results-view');
+  const template = document.getElementById('property-card-template') as HTMLTemplateElement;
+
+  const resetViews = () => {
+    container.classList.add('hidden');
+    loadingView.classList.add('hidden');
+    errorView.classList.add('hidden');
+    noResultsView.classList.add('hidden');
+  };
+
+  document.addEventListener('properties:loading', () => {
+    resetViews();
+    loadingView.classList.remove('hidden');
+  });
+
+  document.addEventListener('properties:error', (event: CustomEvent) => {
+    resetViews();
+    errorMessage.textContent = event.detail.message || 'Ha ocurrido un error al obtener los datos.';
+    errorView.classList.remove('hidden');
+  });
+
+  document.addEventListener('properties:fetched', (event: CustomEvent) => {
+    const { results } = event.detail;
+    
+    resetViews();
+
+    if (results.length === 0) {
+      noResultsView.classList.remove('hidden');
+      return;
+    }
+
+    container.innerHTML = '';
+    container.classList.remove('hidden');
+
+    results.forEach((property: any) => {
+      const templateContent = template.content;
+      const clone = templateContent.cloneNode(true) as DocumentFragment;
+      
+      clone.querySelector('.property-type').textContent = property.propertyType || 'Propiedad';
+      
+      const contractBadge = clone.querySelector('.contract-badge') as HTMLElement;
+      contractBadge.textContent = property.contractType === 'SALE' ? 'Venta' : 'Alquiler';
+      contractBadge.classList.add(property.contractType === 'SALE' ? 'sale' : 'rent');
+      
+      clone.querySelector('.property-address').textContent = property.title || property.street || property.city || 'Sin título';
+
+      const locParts: string[] = [];
+      if (property.province) locParts.push(property.province);
+      if (property.city) locParts.push(property.city);
+      clone.querySelector('.location-text').textContent = locParts.length ? locParts.join(', ') : 'No disponible';
+
+      const detailsContainer = clone.querySelector('.property-details') as HTMLElement | null;
+
+      const bedroomsEl = clone.querySelector('.bedrooms') as HTMLElement | null;
+      if (property.bedrooms != null && property.bedrooms !== 0) {
+        bedroomsEl.textContent = `${property.bedrooms}`;
+      } else {
+        (bedroomsEl?.closest('.detail') as HTMLElement | null)!.style.display = 'none';
+      }
+
+      const bathroomsEl = clone.querySelector('.bathrooms') as HTMLElement | null;
+      if (property.bathrooms != null && property.bathrooms !== 0) {
+        bathroomsEl.textContent = `${property.bathrooms}`;
+      } else {
+        (bathroomsEl?.closest('.detail') as HTMLElement | null)!.style.display = 'none';
+      }
+
+      const surfaceEl = clone.querySelector('.surface') as HTMLElement | null;
+      if (property.surface != null && property.surface !== 0) {
+        surfaceEl.textContent = `${property.surface} m²`;
+      } else {
+        (surfaceEl?.closest('.detail') as HTMLElement | null)!.style.display = 'none';
+      }
+
+      const visibleDetails = detailsContainer?.querySelectorAll('.detail:not([style*="display: none"])');
+      if (visibleDetails && visibleDetails.length === 0 && detailsContainer) {
+        detailsContainer.style.display = 'none';
+      }
+      
+      clone.querySelector('.price').textContent = property.price ? `${property.price.toLocaleString()} €` : 'Consultar';
+      
+      (clone.querySelector('.detail-link') as HTMLAnchorElement).href = `/propertyDetails?id=${property.propertyId}`;
+      
+      container.appendChild(clone);
+    });
+  });
+</script>
+
+<style>
+  .property-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2.5rem;
+  }
+  .property-card {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+    border-top: 4px solid var(--color-primary);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .property-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+  .card-header {
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .contract-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .contract-badge.sale {
+    background-color: #22c55e;
+    color: white;
+  }
+  .contract-badge.rent {
+    background-color: #3b82f6;
+    color: white;
+  }
+  .property-type {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    text-transform: uppercase;
+  }
+  .property-content {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+  }
+  .location {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+  .property-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .detail {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+  }
+  .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+  .value {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 0.9rem;
+  }
+  .price-section {
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  .price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+  .block {
+    display: block;
+    text-align: center;
+    width: 100%;
+  }
+  .no-results {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--color-bg-card);
+    border-radius: 1rem;
+    border: 1px dashed var(--border-color);
+    margin-top: 2rem;
+  }
+  .no-results p {
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+  .hidden {
+    display: none;
+  }
+</style>

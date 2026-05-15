@@ -1,0 +1,321 @@
+---
+/**
+ * Componente Modal para filtrar propiedades
+ */
+import provinces from '../data/provinces.json';
+---
+
+<div id="property-filter-modal" class="modal-overlay hidden">
+  <div class="modal-content card">
+    <header class="modal-header">
+      <h2>Filtrar Propiedades</h2>
+      <button id="close-property-modal-btn" class="close-btn">&times;</button>
+    </header>
+
+    <form id="property-filter-form" class="filter-form">
+      <div class="form-grid">
+        <!-- Ciudad -->
+        <div class="form-group">
+          <label for="propertyCity">Ciudad</label>
+          <input type="text" id="propertyCity" name="city" placeholder="ej: Madrid, Barcelona" />
+        </div>
+
+        <!-- Provincia -->
+        <div class="form-group">
+          <label for="propertyProvince">Provincia</label>
+          <select id="propertyProvince" name="province">
+            <option value="">Cualquier provincia</option>
+            {provinces.map(province => (
+              <option value={province}>{province}</option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Tipo de Contrato -->
+        <div class="form-group">
+          <label for="contractType">Tipo de Operación</label>
+          <select id="contractType" name="contractType">
+            <option value="">Cualquiera</option>
+            <option value="SALE">Venta</option>
+            <option value="RENT">Alquiler</option>
+          </select>
+        </div>
+
+        <!-- Tipo de Propiedad -->
+        <div class="form-group">
+          <label for="propertyType">Tipo de Propiedad</label>
+          <select id="propertyType" name="propertyType">
+            <option value="">Cualquier tipo</option>
+            <option value="APARTMENT">Piso/Apartamento</option>
+            <option value="HOUSE">Casa/Chalet</option>
+            <option value="PENTHOUSE">Ático</option>
+            <option value="VILLA">Villa</option>
+            <option value="TOWNHOUSE">Adosado</option>
+            <option value="STUDIO">Estudio</option>
+            <option value="LOFT">Loft</option>
+            <option value="OTHER">Otro</option>
+          </select>
+        </div>
+
+        <!-- Habitaciones -->
+        <div class="form-group">
+          <label for="bedrooms">Habitaciones</label>
+          <select id="bedrooms" name="bedrooms">
+            <option value="">Cualquiera</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5+</option>
+          </select>
+        </div>
+
+        <!-- Baños -->
+        <div class="form-group">
+          <label for="bathrooms">Baños</label>
+          <select id="bathrooms" name="bathrooms">
+            <option value="">Cualquiera</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3+</option>
+          </select>
+        </div>
+
+        <!-- Superficie Mínima -->
+        <div class="form-group">
+          <label for="minSurface">Superficie mínima (m²)</label>
+          <input type="number" id="minSurface" name="minSurface" placeholder="0" min="0" />
+        </div>
+
+        <!-- Superficie Máxima -->
+        <div class="form-group">
+          <label for="maxSurface">Superficie máxima (m²)</label>
+          <input type="number" id="maxSurface" name="maxSurface" placeholder="500" min="0" />
+        </div>
+
+        <!-- Precio Mínimo -->
+        <div class="form-group">
+          <label for="minPrice">Precio mínimo (€)</label>
+          <input type="number" id="minPrice" name="minPrice" placeholder="0" min="0" />
+        </div>
+
+        <!-- Precio Máximo -->
+        <div class="form-group">
+          <label for="maxPrice">Precio máximo (€)</label>
+          <input type="number" id="maxPrice" name="maxPrice" placeholder="1000000" min="0" />
+        </div>
+
+        <!-- Ascensor -->
+        <div class="form-group">
+          <label for="elevator">Ascensor</label>
+          <select id="elevator" name="elevator">
+            <option value="">Indiferente</option>
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+
+        <!-- Calefacción -->
+        <div class="form-group">
+          <label for="heating">Calefacción</label>
+          <select id="heating" name="heating">
+            <option value="">Indiferente</option>
+            <option value="central">Central</option>
+            <option value="individual">Individual</option>
+            <option value="no">Sin calefacción</option>
+          </select>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" id="clear-property-filters-btn" class="btn-secondary">Limpiar</button>
+        <div class="actions">
+          <button type="button" id="cancel-property-modal-btn" class="btn-ghost">Cancelar</button>
+          <button type="submit" class="btn-accent">Aplicar Filtros</button>
+        </div>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('property-filter-modal');
+  const closeBtn = document.getElementById('close-property-modal-btn');
+  const cancelBtn = document.getElementById('cancel-property-modal-btn');
+  const clearBtn = document.getElementById('clear-property-filters-btn');
+  const form = document.getElementById('property-filter-form') as HTMLFormElement;
+
+  const openModal = () => modal?.classList.remove('hidden');
+  const closeModal = () => modal?.classList.add('hidden');
+
+  closeBtn?.addEventListener('click', closeModal);
+  cancelBtn?.addEventListener('click', closeModal);
+  
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    form?.reset();
+  });
+
+  document.addEventListener('property-filter:open', openModal);
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+
+    formData.forEach((value, key) => {
+      if (value && value.toString().trim() !== '') {
+        params.append(key, value.toString());
+      }
+    });
+
+    window.location.href = `/propertiesList?${params.toString()}`;
+  });
+</script>
+
+<style>
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+  }
+
+  .modal-content {
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    background: var(--color-bg-card);
+    padding: 2rem;
+    position: relative;
+    box-shadow: var(--shadow-xl);
+    animation: modalAppear 0.3s ease-out;
+    overflow-y: auto;
+  }
+
+  @keyframes modalAppear {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--color-primary);
+  }
+
+  .close-btn {
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+    transition: color 0.2s;
+  }
+
+  .close-btn:hover {
+    color: var(--color-accent);
+  }
+
+  .filter-form .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+  }
+
+  .form-group input, 
+  .form-group select {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-page);
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .modal-footer .actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-ghost {
+    padding: 0.75rem 1.5rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .btn-ghost:hover {
+    color: var(--color-primary);
+  }
+
+  .btn-secondary {
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-bg-page);
+    color: var(--color-primary);
+  }
+
+  .hidden {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (max-width: 600px) {
+    .filter-form .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .modal-content {
+      width: 95%;
+      padding: 1.25rem;
+    }
+  }
+</style>

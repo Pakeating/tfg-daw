@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: PropertyService
+  boot:
+    admin:
+      client:
+        url: "http://admin-server:9090/admin"
+  config:
+    import: "optional:configserver:http://config-service-v3:8888"
+  datasource:
+    url: jdbc:mariadb://mariadb:3306/app_db # database es el nombre del docker
+    username: admin_user
+    password: pass
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5  # optimización de RAM, no quiero que se sature la base de datos
+      minimum-idle: 2
+  jpa:
+    hibernate:
+      ddl-auto: update # crea las tablas automáticamente si no existen
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  file:
+    name: logs/propertyService.log
+
+nats:
+  url: nats://nats-server:4222
+
+property:
+  scraper:
+    enabled: true
+    delay:
+      min: 100
+      max: 500
+    timeout: 30000
+    user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    provider:
+      tecnocasa:
+        enabled: true
+      idealista:
+        enabled: false
+
+server:
+  port: 8084

@@ -1,0 +1,338 @@
+
+networks:
+  microservices-network:
+    driver: bridge
+  public-tunnel-network:
+    driver: bridge
+services:
+
+# SERVICIOS DE INFRAESTRUCTURA:
+
+  # --- CONFIG SERVICE V3---
+  config-service-v3:
+    build:
+      context: ../ConfigServiceV3
+    container_name: ${CONFIG}
+    image: ${CONFIG}
+    hostname: config-service-v3
+    ports:
+      - "8888:8888"
+    volumes:
+      # archivos locales en el config
+      #      - ./configs:/app/resources/configurations
+      # archivos en deployment/config
+      - ./configurations:/app/config-repo
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      admin-server:
+        condition: service_healthy
+    networks:
+      - microservices-network
+
+  # --- API GATEWAY V3 ---
+  api-gateway-v3:
+    build:
+      context: ../APIGatewayV3
+    container_name: ${GATEWAY}
+    image: ${GATEWAY}
+    ports:
+      - "8080:8080"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false     #failfast y reintentos forzados para que reconecte si esta inestable
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      #      Desactivado EUREKA
+      #      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_ENABLED=false
+      - SPRING_CLOUD_DISCOVERY_ENABLED=false
+      - JWT_SECRET=dev-secret-please-change-in-production
+      - APP_ENVIRONMENT=local
+    networks:
+      - microservices-network
+      - public-tunnel-network
+
+  # --- ADMIN ---
+  admin-server:
+    build:
+      context: ../Admin
+    container_name: ${ADMIN}
+    image: ${ADMIN}
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9090/actuator/health" ]
+      interval: 5s
+      retries: 10
+      start_period: 5s
+    environment:
+      - SPRING_BOOT_ADMIN_CONTEXT_PATH=/admin
+    networks:
+      - microservices-network
+
+
+  # --- ACTUALIZADOR AUTOMÁTICO ---
+  watchtower:
+    image: containrrr/watchtower
+    container_name: ${WATCHTOWER}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # Forzamos la versión exacta que soporta tu Server Engine
+      - DOCKER_API_VERSION=1.52
+    command: --interval 30 --cleanup
+    networks:
+      - microservices-network
+
+#   --- CONECTOR DE CLOUDFLARE TUNNELS ---
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ${CLOUDFLARE}
+    restart: unless-stopped
+    networks:
+      - public-tunnel-network
+    environment: ## TODO: CAMBIAR POR VARIABLE DE ENTORNO, NO PUEDE ESTAR EN EL REPOSITORIO
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN_DEV}
+    command: tunnel --no-autoupdate run
+#    depends_on:
+#      - gateway
+
+  # --- COLAS MENSAJERIA ---
+  nats-server:
+    image: nats:2.10-alpine
+    container_name: ${NATS}
+    ports:
+      - "4222:4222" # Puerto para clientes
+      - "8222:8222" # Puerto de monitoreo HTTP (Métricas)
+    command: [
+      "-js",                 # JetStream (Persistencia)
+      "-m", "8222",          # servidor de monitoreo HTTP
+      "--sd", "/data"        # directorio donde se guardarán los mensajes persistentes
+    ]
+    volumes:
+      - ./nats_data:/data    # persistencia
+    networks:
+      - microservices-network
+    deploy:
+      resources:
+        limits:
+          memory: 100M        #deberia ser suficiente...
+
+  # --- NATS DASHBOARD ---
+  nats-dashboard:
+    image: mdawar/nats-dashboard:latest
+    container_name: ${NATS_DASHBOARD}
+    ports:
+      - "8282:80" # Mapeamos el 8080 interno al 8282 para no chocar con el Gateway
+    environment:
+      - REVERSE_PROXY_UPSTREAM=nats-server:8222
+    depends_on:
+      - nats-server
+    networks:
+      - microservices-network
+
+  # --- ADMINER ---
+  adminer:
+    image: adminer:latest
+    container_name: ${ADMINER}
+    restart: always
+    ports:
+      - "4000:8080"
+    networks:
+      - microservices-network
+
+  # --- DATABASES ---
+  mariadb:
+    image: mariadb:10.11
+    container_name: ${MARIADB}
+    restart: always
+    # Para minimizar la huella de memoria, si escala habra que subirlo:
+    command: [
+      "mysqld",
+      "--performance-schema=OFF",
+      "--innodb-buffer-pool-size=64M",
+      "--innodb-log-buffer-size=8M",
+      "--max-connections=20",
+      "--key-buffer-size=16M",
+      "--query-cache-size=0",
+      "--query-cache-type=0",
+      "--skip-name-resolve"
+    ]
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASS}
+      - MYSQL_DATABASE=${DB_DB}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
+    ports:
+      - "3306:3306"
+    volumes:
+      # PERSISTENCIA: Se guarda en el sistema de archivos en lugar del contenedor
+      - ./mariadb_data:/var/lib/mysql
+    networks:
+      - microservices-network
+    deploy:
+      resources:
+        limits:
+          memory: 150M # RAM maxima por ahora
+
+#    SERVICIOS DE NEGOCIO
+
+  orchestrator:
+    build:
+      context: ..
+      dockerfile: Orchestrator/Dockerfile
+    container_name: ${ORCHESTRATOR}
+    image: ${ORCHESTRATOR}
+    ports:
+      - "8082:8082"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+    # --- AUCTION SERVICE ---
+  auction-service:
+    build:
+      context: ..
+      dockerfile: AuctionService/Dockerfile
+    container_name: ${AUCTIONS}
+    image: ${AUCTIONS}
+    ports:
+      - "8081:8081"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+    # --- BFF ---
+  bff:
+    build:
+      context: ..
+      dockerfile: BFF/Dockerfile
+    container_name: ${BFF}
+    image: ${BFF}
+    ports:
+      - "8083:8083"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/app_db
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+    # --- PropertyService ---
+  property-service:
+    build:
+      context: ..
+      dockerfile: PropertyService/Dockerfile
+    container_name: ${PROPERTY}
+    image: ${PROPERTY}
+    ports:
+      - "8084:8084"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - NATS_URL=nats://nats-server:4222
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+    # --- AIService ---
+  ai-service:
+    build:
+      context: ..
+      dockerfile: AIService/Dockerfile
+    container_name: ${AI}
+    image: ${AI}
+    ports:
+      - "8085:8085"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:${CONFIG}:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=false
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MULTIPLIER=1.5
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+#      - NATS_URL=nats://nats-server:4222
+    volumes:
+      - ./logs/usuarios-ms:/app/logs
+    networks:
+      - microservices-network
+
+    # --- NotificationService ---
+  notification-service:
+    build:
+      context: ..
+      dockerfile: NotificationService/Dockerfile
+    container_name: ${NOTIFICATION}
+    image: ${NOTIFICATION}
+    ports:
+      - "8086:8086"
+    depends_on:
+      config-service-v3:
+        condition: service_healthy
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_NAME}
+      - TELEGRAM_USERS_FILE=/app/data/users.json
+    volumes:
+      - ./notification_data:/app/data
+    networks:
+      - microservices-network

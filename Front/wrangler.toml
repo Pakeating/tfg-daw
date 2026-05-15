@@ -1,0 +1,24 @@
+name = "inmopaco-front"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat", "nodejs_als"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIGURACIÓN DE BASE DE DATOS D1
+#
+# PASOS NECESARIOS:
+#   1. Ve al Dashboard de Cloudflare → Workers & Pages → D1
+#   2. Si aún no tienes la BD, créala con:
+#        npx wrangler d1 create inmopaco-auth
+#   3. Copia el "database_name" y el "database_id" que te devuelva Cloudflare
+#   4. Sustituye los valores PLACEHOLDER_ a continuación
+#   5. Ejecuta las migraciones en Cloudflare:
+#        npx wrangler d1 execute NOMBRE_DE_TU_BD --file=./migrations/better_auth_schema.sql --remote
+#   6. Para poblar la BD localmente (tests):
+#        npx wrangler d1 execute NOMBRE_DE_TU_BD --file=./migrations/better_auth_schema.sql --local
+#
+# NOTA: Este archivo NO crea la BD en Cloudflare. Solo configura el binding local.
+# ─────────────────────────────────────────────────────────────────────────────
+[[d1_databases]]
+binding      = "DB"
+database_name = "inmopaco-auth"
+database_id  = "f5d8c18c-6b5f-48b0-85b4-8704346a615c"

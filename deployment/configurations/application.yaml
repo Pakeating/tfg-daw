@@ -1,0 +1,60 @@
+# Este archivo lo lee el Config Service y se lo da a TODOS
+info:
+  config-source: "config-server"
+  general-source: "shared"
+
+spring:
+  boot:
+    admin:
+      client:
+        url: "http://admin-server:9090/admin"
+  output:
+    ansi:
+      enabled: always
+  cloud:
+    config:
+      override-none: false
+      allow-override: true
+      override-system-properties: true
+  datasource:
+    url: jdbc:mariadb://mariadb:3306/app_db # database es el nombre del docker
+    username: admin_user
+    password: pass
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5  # optimización de RAM, no quiero que se sature la base de datos
+      minimum-idle: 2
+  jpa:
+    hibernate:
+      ddl-auto: update # crea las tablas automáticamente si no existen
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  info:
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+    env:
+      show-values: always
+      post:
+        enabled: true
+
+logging:
+  pattern: #Forzamos color tambien en el archivo
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%5p) %clr(${PID:- }){magenta} --- [%t] %clr(%-40.40logger{39}){cyan} : %m%n"
+  exception-conversion-word: "%wEx" #Evita que se desactive el render en las excepciones
+
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      total-size-cap: 100MB
+      max-history: 7

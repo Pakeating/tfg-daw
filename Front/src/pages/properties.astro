@@ -1,0 +1,85 @@
+---
+/**
+ * Página principal de propiedades
+ */
+import Layout from "../layouts/Layout.astro";
+import PropertyFilterModal from "../components/PropertyFilterModal.astro";
+---
+
+<Layout title="Propiedades - InmoPaco">
+  <main class="container">
+    <header class="page-header">
+      <h1>Propiedades Inmobiliarias</h1>
+      <p class="subtitle">
+        Encuentra tu próximo hogar entre cientos de propiedades.
+      </p>
+    </header>
+
+    <section class="properties-grid">
+      <a href="/propertiesList" class="card-link">
+        <div class="card">
+          <h3>Ver Todas las Propiedades</h3>
+          <p>Explora todas las propiedades disponibles</p>
+        </div>
+      </a>
+      <div id="property-filter-card" class="card clickable">
+        <h3>Filtrar Propiedades</h3>
+        <p>Filtra por tipo, precio, localización...</p>
+      </div>
+    </section>
+
+    <PropertyFilterModal />
+  </main>
+</Layout>
+
+<script>
+  document.getElementById('property-filter-card')?.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('property-filter:open'));
+  });
+</script>
+
+<style>
+  main {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+  .page-header {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+  .subtitle {
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+  }
+  .properties-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    justify-content: center;
+  }
+  .card {
+    text-align: center;
+    margin-bottom: 1rem;
+    height: 100%;
+  }
+  .card.clickable {
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .card.clickable:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .card-link {
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--transition-fast);
+  }
+  .card-link:hover {
+    transform: translateY(-4px);
+  }
+</style>

@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: admin-server
+  config:
+    import: "optional:configserver:http://config-service-v3:8888"
+  # para que Admin se vea a sí mismo
+  boot:
+    admin:
+      context-path: /admin
+#      DESACTIVADO PARA QUE FUNCIONE TAMBIEN DESDE GATEWAY, revisar
+#      ui:
+#        public-url: http://localhost:9090/admin
+      client:
+        # DEBE terminar en /admin
+        url: "http://admin-server:9090/admin"
+
+server:
+  port: 9090
+  forward-headers-strategy: framework

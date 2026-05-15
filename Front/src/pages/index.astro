@@ -1,0 +1,49 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="InmoPaco - Inmobiliaria">
+	<main class="container">
+		<section class="hero">
+			<h1>Encuentra tu hogar ideal con <span class="text-accent">InmoPaco</span></h1>
+			<p class="subtitle">
+				El agregador que no sabias que necesitabas.
+			</p>
+			<div class="cta-actions">
+				<a href="/properties" class="btn-primary">Ver Propiedades</a>
+				<a href="/auctions" class="btn-accent">Ver Subastas</a>
+			</div>
+		</section>
+	</main>
+</Layout>
+
+<style>
+	main {
+		padding-top: 4rem;
+		padding-bottom: 4rem;
+	}
+	.hero {
+		text-align: center;
+		padding: 4rem 0;
+		max-width: 800px;
+		margin: 0 auto;
+	}
+	h1 {
+		font-size: 3.5rem;
+		margin-bottom: 1.5rem;
+	}
+	.text-accent {
+		color: var(--color-accent);
+	}
+	.subtitle {
+		font-size: 1.25rem;
+		color: var(--color-text-muted);
+		margin-bottom: 2.5rem;
+	}
+	.cta-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+</style>

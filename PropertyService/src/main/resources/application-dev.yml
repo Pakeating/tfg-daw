@@ -1,0 +1,69 @@
+spring:
+  boot:
+    admin:
+      client:
+        url: "http://localhost:9090/admin"
+  application:
+    name: property-service-local
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  datasource:
+    url: jdbc:mariadb://localhost:3307/app_db?createDatabaseIfNotExist=true&useSSL=false
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5  # optimización de RAM, no quiero que se sature la base de datos
+      minimum-idle: 2
+  jpa:
+    hibernate:
+      ddl-auto: update # crea las tablas automáticamente si no existen
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        storage_engine: innodb
+        hbm2ddl:
+          import_files_sql_extractor: org.hibernate.tool.schema.internal.script.MultiLineImportScriptExtractor
+        boot:
+          allow_jdbc_metadata_access: true
+
+logging:
+  file:
+    name: logs/propertyService.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  info:
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+    env:
+      show-values: always
+      post:
+        enabled: true
+property:
+  scraper:
+    enabled: true
+    delay:
+      min: 100
+      max: 500
+    timeout: 30000
+    user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    provider:
+      tecnocasa:
+        enabled: true
+      idealista:
+        enabled: false
+
+nats:
+  url: nats://localhost:4222
+
+server:
+  port: 7084
+

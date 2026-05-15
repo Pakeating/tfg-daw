@@ -1,0 +1,61 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AuctionSearch from "../components/AuctionSearch.astro";
+import AuctionDetailContent from "../components/AuctionDetailContent.astro";
+---
+
+<Layout title="Detalles de Subasta - InmoPaco">
+	<main class="container">
+		<header class="page-header">
+			<a href="/auctionsList" class="back-link" id="back-to-list-top">← Volver al Listado</a>
+			<h1>Detalles de la Subasta</h1>
+		</header>
+
+    <AuctionSearch />
+
+    <AuctionDetailContent />
+	</main>
+</Layout>
+
+<script>
+  // Restaurar el estado de búsqueda en el enlace de retorno
+  if (typeof window !== 'undefined') {
+    const savedSearch = sessionStorage.getItem('last_auction_search');
+    if (savedSearch) {
+      const backLink = document.getElementById('back-to-list-top') as HTMLAnchorElement;
+      if (backLink) {
+        backLink.href = `/auctionsList${savedSearch}`;
+      }
+    }
+  }
+</script>
+
+<style>
+	main.container {
+		padding-top: 2rem;
+		padding-bottom: 4rem;
+		max-width: 1400px;
+	}
+
+  @media (max-width: 768px) {
+    main.container {
+      padding-top: 1rem;
+      padding-bottom: 2rem;
+    }
+    .page-header h1 {
+      font-size: 1.75rem;
+    }
+  }
+	.page-header {
+		margin-bottom: 2rem;
+	}
+	.back-link {
+		display: inline-block;
+		color: var(--color-text-muted);
+		font-weight: 500;
+    transition: color 0.2s;
+	}
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+</style>

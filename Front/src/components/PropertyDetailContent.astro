@@ -1,0 +1,481 @@
+﻿---
+/**
+ * Contenido detallado de la propiedad
+ */
+---
+
+<div id="property-detail-wrapper">
+  <div id="loading-detail" class="loading-state">
+    Obteniendo detalles de la propiedad...
+  </div>
+
+  <div id="property-detail-content" class="hidden">
+    <div class="detail-container">
+      <div class="detail-main">
+        <header class="detail-header">
+          <div class="header-top">
+            <span class="property-type"></span>
+            <span class="contract-badge"></span>
+            <span class="header-price"></span>
+          </div>
+          <h1 class="property-address"></h1>
+          <p class="location">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <span class="location-text"></span>
+          </p>
+          <p class="autonomous-community">
+            <span class="autonomous-community-text"></span>
+          </p>
+        </header>
+
+        <section class="detail-section">
+          <h2>Características</h2>
+          <div class="features-grid">
+            <div class="feature-item">
+              <span class="label">Tipo</span>
+              <span class="value property-type-grid"></span>
+            </div>
+            <div class="feature-item">
+              <span class="label">Operación</span>
+              <span class="value contract-badge-grid"></span>
+            </div>
+            <div class="feature-item">
+              <span class="label">Habitaciones</span>
+              <span class="value bedrooms"></span>
+            </div>
+            <div class="feature-item">
+              <span class="label">Baños</span>
+              <span class="value bathrooms"></span>
+            </div>
+            <div class="feature-item">
+              <span class="label">Superficie</span>
+              <span class="value surface"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <h2>Descripción</h2>
+          <p class="description"></p>
+        </section>
+
+        <section class="detail-section">
+          <h2>Ubicación</h2>
+          <div class="data-grid">
+            <div class="data-item">
+              <span class="label">Provincia:</span>
+              <span class="value province"></span>
+            </div>
+            <div class="data-item">
+              <span class="label">Ciudad:</span>
+              <span class="value city"></span>
+            </div>
+            <div class="data-item">
+              <span class="label">Calle:</span>
+              <span class="value street"></span>
+            </div>
+          </div>
+        </section>
+
+        <div class="detail-section btn-section">
+          <a href="#" class="btn-accent original-link" target="_blank">Ir al anuncio original</a>
+        </div>
+      </div>
+
+      <aside class="detail-sidebar">
+        <div class="sidebar-info">
+          <h3>Resumen</h3>
+          <div class="data-item-simple">
+            <span class="label">Precio:</span>
+            <span class="value sidebar-price"></span>
+          </div>
+          <div class="data-item-simple">
+            <span class="label">Tipo:</span>
+            <span class="value sidebar-type"></span>
+          </div>
+          <div class="data-item-simple">
+            <span class="label">ID:</span>
+            <span class="value property-id-display"></span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="not-found-detail" class="no-results hidden">
+    <p>Lo sentimos, no pudimos encontrar los detalles de esta propiedad.</p>
+    <a href="/propertiesList" class="btn-accent" id="back-to-list-bottom">Volver al Listado</a>
+  </div>
+</div>
+
+<script>
+  const wrapper = document.getElementById("property-detail-content");
+  const loading = document.getElementById("loading-detail");
+  const notFound = document.getElementById("not-found-detail");
+
+  const propertyTypeMap = {
+    "APARTMENT": "Apartamento",
+    "HOUSE": "Casa",
+    "PENTHOUSE": "Ático",
+    "STUDIO": "Estudio",
+    "DUPLEX": "Dúplex",
+    "TOWNHOUSE": "Adosado",
+    "CHALET": "Chalet",
+    "LAND": "Terreno",
+    "GARAGE": "Garaje",
+    "COMMERCIAL": "Local",
+    "OFFICE": "Oficina",
+    "WAREHOUSE": "Nave",
+    "BUILDING": "Edificio"
+  };
+
+  document.addEventListener("properties:fetched", (event: CustomEvent) => {
+    const { results } = event.detail;
+
+    loading.classList.add("hidden");
+
+    if (!results || results.length === 0) {
+      notFound.classList.remove("hidden");
+      wrapper.classList.add("hidden");
+      return;
+    }
+
+    const property = results[0];
+    notFound.classList.add("hidden");
+    wrapper.classList.remove("hidden");
+
+    const setT = (selector: string, value: string) => {
+      if (!wrapper) return;
+      const el = wrapper.querySelector(selector);
+      if (el) el.textContent = value || "No disponible";
+    };
+
+    const setConditionalField = (selector: string, value: any, formatter?: (v: any) => string) => {
+      const el = wrapper.querySelector(selector);
+      if (!el) return;
+      const parent = el.closest('.feature-item') as HTMLElement | null;
+      if (value === null || value === undefined || value === '' || value === 0) {
+        if (parent) parent.classList.add('hidden');
+        el.textContent = '';
+      } else {
+        if (parent) parent.classList.remove('hidden');
+        el.textContent = formatter ? formatter(value) : value;
+      }
+    };
+
+    const setConditionalFieldWithBadge = (selector: string, value: any, badgeFn: (el: Element, v: any) => void) => {
+      const el = wrapper.querySelector(selector);
+      if (!el) return;
+      const parent = el.closest('.feature-item') as HTMLElement | null;
+      if (value === null || value === undefined || value === '' || value === 0) {
+        if (parent) parent.classList.add('hidden');
+        el.textContent = '';
+      } else {
+        if (parent) parent.classList.remove('hidden');
+        badgeFn(el, value);
+      }
+    };
+
+    setT(".property-address", property.street || "Sin dirección");
+
+    const cityPart = property.city || '';
+    const provincePart = property.province || '';
+    setT(".location-text", provincePart && cityPart ? `${provincePart}, ${cityPart}` : (provincePart || cityPart || "No disponible"));
+
+    const autoCommEl = wrapper.querySelector(".autonomous-community-text");
+    const autoCommParent = wrapper.querySelector(".autonomous-community") as HTMLElement | null;
+    if (autoCommEl && autoCommParent) {
+      autoCommEl.textContent = property.autonomousCommunity || '';
+      autoCommParent.style.display = property.autonomousCommunity ? '' : 'none';
+    }
+
+    setConditionalField(".property-type-grid", property.propertyType, (v) => propertyTypeMap[v] || v);
+    setConditionalFieldWithBadge(".contract-badge-grid", property.contractType, (el, v) => {
+      el.textContent = v === "SALE" ? "Venta" : "Alquiler";
+      el.className = `value ${v === "SALE" ? "sale" : "rent"}`;
+    });
+    setConditionalField(".bedrooms", property.bedrooms);
+    setConditionalField(".bathrooms", property.bathrooms);
+    setConditionalField(".surface", property.surface, (v) => `${v} m²`);
+
+    setT(".description", property.description || "Sin descripción disponible.");
+    setT(".city", property.city || "-");
+    setT(".province", property.province || "-");
+    setT(".street", property.street || "-");
+
+    const typeEl = wrapper.querySelector(".property-type");
+    if (typeEl) typeEl.textContent = propertyTypeMap[property.propertyType] || property.propertyType || "Propiedad";
+
+    const contractBadge = wrapper.querySelector(".contract-badge");
+    if (contractBadge) {
+      contractBadge.textContent = property.contractType === "SALE" ? "Venta" : "Alquiler";
+      contractBadge.className = `contract-badge ${property.contractType === "SALE" ? "sale" : "rent"}`;
+    }
+
+    setT(".header-price", property.price ? `${property.price.toLocaleString()} €` : "Consultar");
+    setT(".sidebar-price", property.price ? `${property.price.toLocaleString()} €` : "Consultar");
+    setT(".sidebar-type", propertyTypeMap[property.propertyType] || property.propertyType || "Propiedad");
+    setT(".property-id-display", property.propertyId || "-");
+
+    const originalLink = wrapper.querySelector(".original-link") as HTMLAnchorElement | null;
+    const btnSection = wrapper.querySelector(".btn-section");
+    if (originalLink && btnSection) {
+      if (property.url) {
+        originalLink.href = property.url;
+        btnSection.classList.remove('hidden');
+      } else {
+        btnSection.classList.add('hidden');
+      }
+    }
+  });
+
+if (typeof window !== 'undefined') {
+    const savedSearch = sessionStorage.getItem('last_property_search');
+    if (savedSearch) {
+      const backBtn = document.getElementById('back-to-list-bottom') as HTMLAnchorElement | null;
+      if (backBtn) {
+        backBtn.href = `/propertiesList${savedSearch}`;
+      }
+    }
+  }
+</script>
+
+<style is:global>
+  .detail-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    align-items: start;
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 900px) {
+    .detail-container {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .detail-main {
+    background: var(--color-bg-card);
+    padding: 3rem;
+    border-radius: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border-top: 6px solid var(--color-primary);
+  }
+
+  @media (max-width: 768px) {
+    .detail-main {
+      padding: 1.5rem;
+      border-radius: 1rem;
+    }
+  }
+
+  .detail-section {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .detail-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .detail-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--color-primary);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-item {
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .feature-item .label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .feature-item .value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .contract-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+  .contract-badge.sale {
+    background-color: #22c55e;
+    color: white;
+  }
+  .contract-badge.rent {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .header-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  .detail-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .location {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .autonomous-community {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .data-item .label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  .data-item .value {
+    font-weight: 600;
+    color: var(--color-text-main);
+  }
+
+  .description {
+    line-height: 1.7;
+    color: var(--color-text-main);
+    white-space: pre-wrap;
+  }
+
+  .detail-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .sidebar-info {
+    background: white;
+    padding: 2rem;
+    border-radius: 1.5rem;
+    border: 2px solid var(--color-accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sidebar-info h3 {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+    color: var(--color-accent);
+  }
+
+  .data-item-simple {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dotted var(--border-color);
+  }
+
+  .data-item-simple:last-child {
+    border-bottom: none;
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 5rem;
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--color-bg-card);
+    border-radius: 1rem;
+    border: 1px dashed var(--border-color);
+    margin-top: 2rem;
+  }
+
+  .no-results p {
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .btn-section {
+    text-align: center;
+    padding-top: 0.5rem;
+  }
+
+  .btn-section .btn-accent {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    border-radius: 2rem;
+    background: var(--color-accent);
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .btn-section .btn-accent:hover {
+    background: var(--color-accent-hover, #2563eb);
+  }
+
+  .hidden {
+    display: none;
+  }
+</style>
